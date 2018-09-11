@@ -65,6 +65,9 @@ def read_shp_file(number_of_previous_days, url , purpose):
 		elif(purpose == 'global_surface_temperatures'):
 			cur.execute("DROP TABLE global_surface_temperatures;")
 			cur.execute("CREATE TABLE global_surface_temperatures(temperature integer NOT NULL, number_of_vertices integer NOT NULL, unit varchar(20) NOT NULL, geom geometry(Polygon));")
+		elif(purpose == 'drought'):
+			cur.execute("DROP TABLE drought;")
+			cur.execute("CREATE TABLE drought(improvement integer NOT NULL, persistent integer NOT NULL, development integer NOT NULL, date_drought date NOT NULL, removal integer NOT NULL, geom geometry);")
 
 		print('ALL FILES: ' + str(all_files))
 	
@@ -91,7 +94,7 @@ def read_shp_file(number_of_previous_days, url , purpose):
 				geom = []
 				field_names = [properties[0] for properties in r.fields[1:]]  
 
-
+				print('FIELDS..')
 
 				for curr_row in r.shapeRecords():  
 					geom.append(shape(curr_row.shape.__geo_interface__))
@@ -122,6 +125,21 @@ def read_shp_file(number_of_previous_days, url , purpose):
 						
 						cur.execute("INSERT INTO global_surface_temperatures VALUES (%s, %s, %s, ST_GeomFromText(%s));",
 							(temp, num_vertices, unit_c, shape(curr_row.shape.__geo_interface__).wkt))
+					elif(purpose == 'drought'):
+						print('CURR ROW: ' + str(curr_row.record))
+						improvement = curr_row.record[0]
+						persistent = curr_row.record[1]
+						development = curr_row.record[2]
+						date_drought = curr_row.record[3]
+						# target_date = curr_row.record[4]
+						removal = curr_row.record[5]
+
+						geometric_shape = curr_row.shape.__geo_interface__
+
+						cur.execute("INSERT INTO drought VALUES (%s, %s, %s, %s, %s, ST_GeomFromText(%s));",
+							(improvement, persistent, development, date_drought, removal, shape(geometric_shape).wkt))
+
+
 
 			except Exception as e:
 				print("ERROR: " + str(e))
@@ -222,6 +240,9 @@ def connect():
 if __name__=='__main__':
 	url = "http://www.cpc.ncep.noaa.gov/products/GIS/GIS_DATA/sst_oiv2/"
 	url_second = "http://ftp.cpc.ncep.noaa.gov/GIS/int_hazards/"
+	url_third = "http://www.cpc.ncep.noaa.gov/products/GIS/GIS_DATA/droughtlook/"
+
 	read_shp_file(3, url, purpose = 'global_surface_temperatures')
 	read_shp_file(3, url_second, purpose = 'global_hazards')
+	read_shp_file(3, url_third, purpose = 'drought')
 	# connect()

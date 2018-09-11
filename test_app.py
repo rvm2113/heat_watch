@@ -83,6 +83,8 @@ def get_hazards(address = None):
 		full_query = 'SELECT  Region, Date_, Type FROM international_hazards WHERE ST_COVERS(geom, '
 		full_query += 'ST_GeogFromText(SRID=4326;POINT'
 		full_query += ('(' + curr_loc[x] + ',' + curr_loc[y] + '));')
+		cur.execute(full_query)
+		cur.fetchall()
 
 
 

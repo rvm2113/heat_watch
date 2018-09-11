@@ -171,8 +171,8 @@ def get_temperatures(num_vertices = -1, temperature_min = -1, temperature_max = 
 	
 
 
-
-	
+@app.route("/international_hazards/<string:address>", methods=['GET'])
+		
 
 
 

@@ -26,3 +26,14 @@ CREATE TABLE address_hazard(
 	geom geometry
 );
 
+
+
+CREATE TABLE drought(
+	improvement integer NOT NULL,
+	persistent integer NOT NULL,
+	development integer NOT NULL
+	date_drought date NOT NULL,
+	target_date date NOT NULL,
+	removal integer NOT NULL,
+	geom geometry
+);
