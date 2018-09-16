@@ -14,10 +14,16 @@ import sys
 #curl -XGET 'http://127.0.0.1:5000/international_hazards/11+Th+Street%2C+Central+Business+Dis%2C+Abuja%2C+Nigeria'
 #bin/kafka-topics.sh --zookeeper localhost:2181 --alter --topic hazardrequest --config retention.ms=1000
 #./kafka-topics.sh --zookeeper localhost:2181 --alter --topic hazardrequest --delete-config retention.ms
-
+#curl -XGET 'http://127.0.0.1:5000/droughts/3199+Juniper+St+San+Diego%2C+CA+92104'
+#./kafka-server-start.sh ../config/server.properties
+#/usr/local
 #
 #
 
+
+
+#The Kafka consumer subscribes to streams of records/address requests from the topic
+#'hazardrequest'
 consumer = KafkaConsumer('hazardrequest', group_id='view',bootstrap_servers=['0.0.0.0:9092'])
 
 class HazardService(object):
@@ -56,8 +62,6 @@ class HazardService(object):
 			sys.exit(1)
 
 		location = None
-		print("RESP: " + str(response))
-		# print('RESP JSON: ' + str(response.json()))
 		if(len(response.json()['results']) == 0):
 			print("Unable to geocode this address..")
 		else:
@@ -65,38 +69,68 @@ class HazardService(object):
 			longitude = response.json()['results'][0]['geometry']['location']['lng']
 			location = [longitude, latitude]
 		return location
-	def get_hazards(self, id_tmp):
-		print('FUNCTION HAZARDS CALLED..')
 
+
+
+	#Once the address/request is obtained
+	#through the Kafka consumer, information
+	#for each drought that contains the provided
+	#address is returned.
+	def get_drought_stats(self, id_tmp):
 		for address in consumer:
 			address_id = 'address' + str(id_tmp)
-			print('ADDRESS ID: ' + str(address_id))
-			print('ADDRESS: ' + str(address.key) + ',' + str(address.value))
 			address_key = address.key.decode('UTF-8')
 			address_value = address.value.decode('UTF-8')
 			if(address_key == address_id):
-
-
 				address_key = address_key.replace('+', ' ')
-				# address = address[5:]
-				print('address: ' + str(address_key))
 				curr_loc = self.geocode(address_value)
-				print("CURR LOC: " + str(curr_loc))
 				conn = None
 				try:
 					params = self.config()
-					print("CONFIG SUCCESSFUL..")
-					print(params)
+					conn = psycopg2.connect(**params)
+					conn.autocommit = True
+					cur = conn.cursor()
+					full_query = 'SELECT  improvement, persistent, development FROM drought WHERE ST_COVERS(geom, '
+					full_query += 'ST_GeomFromText(\'POINT'
+					full_query += ('(' + str(curr_loc[0]) + ' ' + str(curr_loc[1]) + ')\'));')
+					cur.execute(sql.SQL(full_query))
+					hazards_all = cur.fetchall()
+					return jsonify({'hazards': hazards_all})
+				except(Exception, psycopg2.DatabaseError) as error:
+					print("ERROR: " + str(error))
+				finally:
+					if conn is not None:
+						conn.close()
+						print('Database connection closed.')
+				break
+		empty_arr = [{}]
+		return jsonify({'drought': empty_arr})
+
+
+	#Once the address/request is obtained
+	#through the Kafka consumer, information
+	#for each hazard that contains the provided
+	#address is returned.
+	def get_hazards(self, id_tmp):
+
+		for address in consumer:
+			address_id = 'address' + str(id_tmp)
+			address_key = address.key.decode('UTF-8')
+			address_value = address.value.decode('UTF-8')
+			if(address_key == address_id):
+				address_key = address_key.replace('+', ' ')
+				curr_loc = self.geocode(address_value)
+				conn = None
+				try:
+					params = self.config()
 					conn = psycopg2.connect(**params)
 					conn.autocommit = True
 					cur = conn.cursor()
 					full_query = 'SELECT  region, date_hazard, type FROM international_hazards WHERE ST_COVERS(geom, '
 					full_query += 'ST_GeomFromText(\'POINT'
 					full_query += ('(' + str(curr_loc[0]) + ' ' + str(curr_loc[1]) + ')\'));')
-					print("FULL QUERY: " + full_query)
-					cur.execute(full_query)
+					cur.execute(sql.SQL(full_query))
 					hazards_all = cur.fetchall()
-					print('HERE!!!!!!!!!!!!!!!!!!!')
 					return jsonify({'hazards': hazards_all})
 				except(Exception, psycopg2.DatabaseError) as error:
 					print("ERROR: " + str(error))

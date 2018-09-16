@@ -22,7 +22,7 @@ CREATE TABLE global_surface_temperatures(
 
 CREATE TABLE address_hazard(
 	address_id serial NOT NULL,
-	address varchar(20) unique NOT NULL,
+	address varchar(100) unique NOT NULL,
 	geom geometry
 );
 
