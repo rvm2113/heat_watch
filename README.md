@@ -45,7 +45,9 @@ Sample Requests
 <br/>
 
 curl -XGET 'http://127.0.0.1:5000/international_hazards/11+Th+Street%2C+Central+Business+Dis%2C+Abuja%2C+Nigeria'
+<br/>
 curl -XGET 'http://127.0.0.1:5000/droughts/3199+Juniper+St+San+Diego%2C+CA+92104'
+<br/>
 curl -XGET 'http://127.0.0.1:5000/global_surface_temperatures/30/60'
 
 <br/>
