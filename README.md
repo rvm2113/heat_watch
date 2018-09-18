@@ -22,10 +22,16 @@ PostgreSQL 10.1(or higher)<br/>
 Flask <br/>
 Python 3<br/>
 PostGIS extension for PostgreSQL<br/>
+Google's Geocoding API<br/>
 
 # Usage: 
 
 (For setup):
+
+python3 initialize_weather_repository.py  (to be scheduled as a CRON job with crontab)
+(a file that populates the database with the most recent 
+data regarding droughts, global surface temperatures, and international hazards)
+
 Within the path folder for the Zookeeper installation:
 Complete Path/usr/local/zookeeper-3.4.12/bin
 sudo ./zkServer.sh start
@@ -56,9 +62,31 @@ curl -XGET 'http://127.0.0.1:5000/global_surface_temperatures/30/60'
 
 
 
-# Functionalities:
+# Functionalities/Additional Setup Information:
+
+Setup(Additional Information):
+Heat Watch is populated by extracting shapefile data(with the extensions .shp and .dbf contained
+in compressed) and storing as a geometry object within PostgreSQL. 
+
+
 
 <br />
+For the endpoint /global_surface_temperatures, Heat Watch returns the centroid of the PostGIS
+shape which covers an area with the specified temperature range and number of vertices.
+
+Through usage of the endpoints /droughts and /international_hazards,
+Heat Watch stores the address specified within the request, and publishes/streams the record
+to a topic labelled hazardrequest within ApacheKafka. 
+
+A consumer service(a secondary service) initiates a KafkaConsumer and extracts the address from the Kafka broker.
+This secondary service geocodes the specified address(throught the usage of Google's Geocoding API)
+and makes a geospatial query within PostGIS in order to obtain all related drought or global hazard information,
+which is returned to the original service.
+
+Heat Watch also allows for storage of addresses as per user requests. Through the endpoints
+/addresses/get_by_drought and /addresses/get_by_hazard, Heat Watch returns all addresses specified by drought
+or by hazard by executing a left spatial join within PostGIS. Any address that is not associated with a particular
+drought or hazard is returned with empty data for that particular request.
 
 
 
